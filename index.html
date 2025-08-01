@@ -1,0 +1,107 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Consulta de Status - Multifácil</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #f7f7f7;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem;
+    }
+    h1 {
+      color: #1e40af;
+    }
+    form {
+      margin-bottom: 1rem;
+    }
+    input {
+      padding: 0.5rem;
+      font-size: 1rem;
+      width: 250px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    button {
+      padding: 0.5rem 1rem;
+      background-color: #1e40af;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-left: 0.5rem;
+    }
+    .result {
+      margin-top: 1.5rem;
+      background: white;
+      padding: 1rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+      max-width: 500px;
+      width: 100%;
+    }
+    .result p {
+      margin: 0.5rem 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>Consulta de Status do Veículo</h1>
+  <form id="consultaForm">
+    <input type="text" id="placaInput" placeholder="Digite sua placa (ex: ABC1234)" required>
+    <button type="submit">Consultar</button>
+  </form>
+  <div class="result" id="resultado"></div>
+
+  <script>
+    const API_KEY = 'AIzaSyBcQ9P__NhKu_yAi9h9ED3LVXAvoAdh-rI';
+    const SHEET_ID = '1m_Cj_Br-4zxTSzvjVyslsHlPHaHuf084K43En4MEhxI';
+    const RANGE = 'CONTROLE!A1:Z1000';
+
+    document.getElementById('consultaForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      const placaBusca = document.getElementById('placaInput').value.toUpperCase().replace(/[^A-Z0-9]/gi, '');
+      const resultadoDiv = document.getElementById('resultado');
+      resultadoDiv.innerHTML = 'Buscando...';
+
+      try {
+        const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${RANGE}?key=${API_KEY}`);
+        const data = await res.json();
+
+        if (!data.values) throw new Error('Erro ao obter dados.');
+
+        const headers = data.values[0].map(h => h.trim().toLowerCase());
+        const rows = data.values.slice(1);
+
+        const indexPlaca = headers.findIndex(h => h.includes('placa'));
+        const indexNome = headers.findIndex(h => h.includes('nome'));
+        const indexStatus = headers.findIndex(h => h.includes('situação'));
+
+        const match = rows.find(row => (row[indexPlaca] || '').replace(/[^A-Z0-9]/gi, '') === placaBusca);
+
+        if (!match) {
+          resultadoDiv.innerHTML = '<p><strong>Placa não encontrada.</strong></p>';
+          return;
+        }
+
+        resultadoDiv.innerHTML = `
+          <h3>Status do Veículo</h3>
+          <p><strong>Nome do Associado:</strong> ${match[indexNome] || '-'}</p>
+          <p><strong>Placa:</strong> ${match[indexPlaca] || '-'}</p>
+          <p><strong>Status Atual:</strong> ${match[indexStatus] || '-'}</p>
+        `;
+
+      } catch (error) {
+        resultadoDiv.innerHTML = '<p><strong>Erro ao consultar os dados.</strong></p>';
+        console.error(error);
+      }
+    });
+  </script>
+</body>
+</html>
